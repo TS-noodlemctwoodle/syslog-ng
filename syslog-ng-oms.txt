@@ -29,17 +29,17 @@ source s_network {
 ###
 
 
-#source remote_tls_source {
-#    network(
-#        ip(0.0.0.0) port(6514)
-#        transport("tls")
+source remote_tls_source {
+    network(
+        ip(0.0.0.0) port(6514)
+        transport("tls")
 #        tls(
 #            key-file("/opt/syslog-ng/etc/syslog-ng/key.d/syslog-ng.key")
 #            cert-file("/opt/syslog-ng/etc/syslog-ng/cert.d/syslog-ng.cert")
 #            ca-dir("/opt/syslog-ng/etc/syslog-ng/ca.d")
 #        )
-#    );
-#};
+    );
+};
 
 ########################
 # Destinations
@@ -62,6 +62,9 @@ destination d_oms { udp("127.0.0.1" port(25224)); };
 ### Custom Filter
 filter f_network { facility(local0) and not level(debug); };
 
+# TLS Configuration
+filter tls_network { facility(local0) and not level(debug); };
+
 #OMS_facility = local0
 filter f_local0_oms { level(alert,crit,debug,emerg,err,info,notice,warning) and facility(local0); };
 
@@ -77,6 +80,9 @@ filter f_local1_oms { level(alert,crit,debug,emerg,err,info,notice,warning) and 
 
 ### Custom Log Source
 log { source(s_network); filter(f_network); destination(d_network); };
+
+# TLS Configuration
+log { source(remote_tls_source); filter(tls_network); destination(d_network); };
 
 #OMS_facility = local0
 log { source(s_network); filter(f_local0_oms); destination(d_oms); };
