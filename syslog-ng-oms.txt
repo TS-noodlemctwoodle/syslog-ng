@@ -1,0 +1,91 @@
+@version: 3.13
+@include "scl.conf"
+
+# Syslog-ng configuration file, compatible with default Debian syslogd
+# installation.
+
+# First, set some global options.
+options { chain_hostnames(off); flush_lines(0); use_dns(no); use_fqdn(no);
+          dns_cache(no); owner("root"); group("adm"); perm(0640);
+          stats_freq(0); bad_hostname("^gconfd$");
+};
+
+########################
+# Sources
+########################
+# This is the default behavior of sysklogd package
+# Logs may come from unix stream, but not from another machine.
+#
+source s_src {
+       system();
+       internal();
+};
+
+
+### Custom Source
+source s_network {
+       network(transport(udp) port(514));
+};
+###
+
+
+#source remote_tls_source {
+#    network(
+#        ip(0.0.0.0) port(6514)
+#        transport("tls")
+#        tls(
+#            key-file("/opt/syslog-ng/etc/syslog-ng/key.d/syslog-ng.key")
+#            cert-file("/opt/syslog-ng/etc/syslog-ng/cert.d/syslog-ng.cert")
+#            ca-dir("/opt/syslog-ng/etc/syslog-ng/ca.d")
+#        )
+#    );
+#};
+
+########################
+# Destinations
+########################
+
+### Custom Destination
+destination d_network { file("/var/log/remote_network.log"); };
+
+#OMS_Destination
+destination d_oms { udp("127.0.0.1" port(25224)); };
+###
+
+
+########################
+# Filters
+########################
+# Here's come the filter options. With this rules, we can set which
+# message go where.
+
+### Custom Filter
+filter f_network { facility(local0) and not level(debug); };
+
+#OMS_facility = local0
+filter f_local0_oms { level(alert,crit,debug,emerg,err,info,notice,warning) and facility(local0); };
+
+#OMS_facility = local1
+filter f_local1_oms { level(alert,crit,debug,emerg,err,info,notice,warning) and facility(local1); };
+###
+
+
+
+########################
+# Log paths
+########################
+
+### Custom Log Source
+log { source(s_network); filter(f_network); destination(d_network); };
+
+#OMS_facility = local0
+log { source(s_network); filter(f_local0_oms); destination(d_oms); };
+
+#OMS_facility = local1
+log { source(s_network); filter(f_local1_oms); destination(d_oms); };
+###
+
+###
+# Include all config files in /etc/syslog-ng/conf.d/
+###
+@include "/etc/syslog-ng/conf.d/*.conf"
